@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, ValidationPipe } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -8,6 +8,7 @@ import { User } from './users/user.entity';
 import { Report } from './reports/report.entity';
 import { APP_PIPE } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { PreauthMiddleware } from './auth/preauth.middleware';
 const cookieSession = require('cookie-session');
 
 @Module({
@@ -39,17 +40,19 @@ const cookieSession = require('cookie-session');
     },
   ],
 })
-export class AppModule {
+export class AppModule implements NestModule{
   constructor(private configService: ConfigService) {
   }
 
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(
+    consumer.apply(
         cookieSession({
           keys: [this.configService.get('COOKIE_KEY')],
         }),
       )
       .forRoutes('*');
+    consumer.apply(PreauthMiddleware).forRoutes({
+      path: '*', method: RequestMethod.ALL
+    });
   }
 }
